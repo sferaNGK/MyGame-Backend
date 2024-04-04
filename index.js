@@ -16,61 +16,96 @@ app.use(cors(corsOptions))
 const server = http.createServer(app)
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173"
+        origin: "*"
     }
 })
 
-let admins = [];
 let users = [];
-let activeUser;
+let userQueue = [];
+
+let activeUser = null;
+let activeQuestion = null;
 
 const changeUser = () => {
 
-    let index = users.indexOf(activeUser) + 1
+    let index = userQueue.indexOf(activeUser) + 1
 
-    if (index == users.length) {
+    if (index == userQueue.length) {
         index = 0
-        activeUser = users[index]
+        activeUser = userQueue[index]
         return
     }
 
-    activeUser = users[index]
+    activeUser = userQueue[index]
 }
 
 io.on('connection', (socket) => {
     console.log('socket connected', socket.id);
 
-    socket.on("join", (user) => {
+    // Подключение к игре
+    socket.on("joinGame", (user) => {
 
-        if (user.role == "admin") {
-            admins.push(user)
-        } else {
+        if (user.role == "user") {
             users.push(user)
         }
 
-        if (!activeUser) {
-            activeUser = users[0]
-        }
-
-        io.emit("getActiveUser", activeUser)
+        // Возвращает всех подключённых пользователей
         io.emit("all", users)
     });
 
+    // Изменение отвечающего пользователя
     socket.on("changeUser", () => {
 
         changeUser()
 
+        // Возвращает нового отвечающнго пользователя 
         io.emit("newActiveUser", activeUser)
     })
 
-    socket.on("addPoints", ({activeUser, points}) => {
+    // Добавление очков
+    socket.on("addPoints", ({ activeUser, points }) => {
 
         users.find(el => el.username == activeUser.username).points += points
 
+        activeQuestion = null
+        userQueue = []
+        activeUser = null
+
+        // Возвращение обновленного списка игроков
         io.emit('newUserList', users)
 
     })
 
+    // Выбор вопросы
+    socket.on("selectQuestion", (question) => {
+
+        activeQuestion = question;
+
+        // Возвращает выбранный вопрос на клиент
+        io.emit("setActiveQuestion", activeQuestion)
+    })
+
+    // Срабатывает когда пользователь жмёт на кнопку ответить
+    socket.on("answerQuestion", (user) => {
+
+        if (userQueue.find(el => el.username == user.username)) {
+            return
+        }
+
+        userQueue.push(user)
+
+        if (!activeUser) {
+            activeUser = userQueue[0]
+
+            // Возвращает нового отвечающнго пользователя 
+            io.emit("getActiveUser", activeUser)
+        }
+
+        // Возвращает список нажавших на кнопук пользоватлей
+        io.emit("getQueue", userQueue)
+    })
+
+    // Отключение от сервера
     socket.on('disconnect', function () {
         console.log('Отключились')
     })
