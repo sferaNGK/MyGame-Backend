@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import http from "http"
+import sqlite3 from 'sqlite3';
 import { Server } from 'socket.io';
 
 const corsOptions = {
@@ -9,8 +10,11 @@ const corsOptions = {
     optionSuccessStatus: 200,
 }
 
+const db = new sqlite3.Database('./game.db');
+
 const app = express()
 
+app.use(express.json())
 app.use(cors(corsOptions))
 
 const server = http.createServer(app)
@@ -48,6 +52,7 @@ io.on('connection', (socket) => {
         if (user.role == "user") {
             users.push(user)
         }
+
 
         // Возвращает всех подключённых пользователей
         io.emit("all", users)
@@ -106,13 +111,49 @@ io.on('connection', (socket) => {
     })
 
     // Отключение от сервера
-    socket.on('disconnect', function () {
+    socket.on('disconnect', () => {
         console.log('Отключились')
     })
 });
 
+
+// API
 app.get("/", (req, res) => {
     res.send("API")
+})
+
+app.get("/games", (req, res) => {
+
+    db.get("SELECT * FROM games", (err, row) => {
+        let data = []
+        data.push(row)
+        res.json(data);
+    });
+
+})
+app.get("/game/:id", (req, res) => {
+
+    db.get("SELECT * FROM games WHERE id=?", req.params.id, (err, row) => {
+
+        if (row) {
+            res.json(row);
+            return
+        }
+
+        res.json({ message: "Игры с таким id не существует!" });
+    });
+
+})
+
+app.post("/game", (req, res) => {
+
+    const { game } = req.body
+
+    console.log(game)
+
+    db.run("INSERT INTO games (gamedata) VALUES (?)", game);
+
+    res.status(201).json({ message: "Игры успешно добавлена!" });
 })
 
 server.listen(3800, () => {
