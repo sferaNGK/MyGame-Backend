@@ -124,10 +124,15 @@ app.get("/", (req, res) => {
 
 app.get("/games", (req, res) => {
 
-    db.get("SELECT * FROM games", (err, row) => {
+    db.all("SELECT * FROM games", (err, rows) => {
+
         let data = []
-        data.push(row)
-        res.json(data);
+
+        for (let i = 0; i < rows.length; i++) {
+            data.push({id: rows[i].id, gamedata: JSON.parse(rows[i].gamedata) })
+        }
+        
+        res.json(data)
     });
 
 })
@@ -136,6 +141,7 @@ app.get("/game/:id", (req, res) => {
     db.get("SELECT * FROM games WHERE id=?", req.params.id, (err, row) => {
 
         if (row) {
+            console.log(row)
             res.json(row);
             return
         }
