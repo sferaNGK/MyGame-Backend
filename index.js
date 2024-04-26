@@ -50,12 +50,20 @@ io.on('connection', (socket) => {
     socket.on("joinGame", (user) => {
 
         if (user.role == "user") {
-            users.push(user)
+            
+            if(!users.find(el => el.username == user.username)) {
+                users.push(user)
+                socket.emit("myUser", user)
+            } else {
+                socket.emit("myUser", users.find(el => el.username == user.username))
+            }
+
         }
 
 
         // Возвращает всех подключённых пользователей
         io.emit("all", users)
+        io.emit("setActiveQuestion", activeQuestion)
     });
 
     // Изменение отвечающего пользователя
