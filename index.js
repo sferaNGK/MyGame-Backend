@@ -78,7 +78,7 @@ io.on('connection', (socket) => {
     // Добавление очков
     socket.on("addPoints", ({ activeUser, points }) => {
 
-        users.find(el => el.username == activeUser.username).points += points
+        users.find(el => el.username == activeUser.username).points += +points
 
         activeQuestion = null
         userQueue = []
@@ -128,46 +128,6 @@ io.on('connection', (socket) => {
 // API
 app.get("/", (req, res) => {
     res.send("API")
-})
-
-app.get("/games", (req, res) => {
-
-    db.all("SELECT * FROM games", (err, rows) => {
-
-        let data = []
-
-        for (let i = 0; i < rows.length; i++) {
-            data.push({id: rows[i].id, gamedata: JSON.parse(rows[i].gamedata) })
-        }
-        
-        res.json(data)
-    });
-
-})
-app.get("/game/:id", (req, res) => {
-
-    db.get("SELECT * FROM games WHERE id=?", req.params.id, (err, row) => {
-
-        if (row) {
-            console.log(row)
-            res.json(row);
-            return
-        }
-
-        res.json({ message: "Игры с таким id не существует!" });
-    });
-
-})
-
-app.post("/game", (req, res) => {
-
-    const { game } = req.body
-
-    console.log(game)
-
-    db.run("INSERT INTO games (gamedata) VALUES (?)", game);
-
-    res.status(201).json({ message: "Игры успешно добавлена!" });
 })
 
 server.listen(3800, () => {
