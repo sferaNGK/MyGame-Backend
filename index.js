@@ -10,8 +10,6 @@ const corsOptions = {
     optionSuccessStatus: 200,
 }
 
-const db = new sqlite3.Database('./game.db');
-
 const app = express()
 
 app.use(express.json())
@@ -73,6 +71,12 @@ io.on('connection', (socket) => {
 
         // Возвращает нового отвечающнго пользователя 
         io.emit("newActiveUser", activeUser)
+    })
+
+    socket.on("closeQuestion", () => {
+        activeQuestion = null;
+
+        io.emit("setActiveQuestion", activeQuestion)
     })
 
     // Добавление очков
